@@ -1,0 +1,89 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Groq Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0c0e; --bg2:#141417; --bg3:#1c1c21;
+  --border:#2a2a32; --border2:#3a3a45;
+  --accent:#00e5a0; --accent2:#00b880; --adim:rgba(0,229,160,.10);
+  --text:#e8e8f0; --text2:#8888a0; --text3:#555566;
+  --ubg:#1a2a22; --uborder:rgba(0,229,160,.18);
+  --err:#ff5555; --f:'JetBrains Mono',monospace; --sw:252px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{font-family:var(--f);background:var(--bg);color:var(--text);font-size:13px;display:flex;
+  height:100vh;height:100dvh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sb{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:transform .25s;z-index:100;min-height:0}
+#sb-hd{padding:13px 10px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.logo{color:var(--accent);font-weight:700;font-size:15px;letter-spacing:-.5px;flex:1}
+.logo span{color:var(--text3);font-weight:300}
+#btn-new{background:var(--adim);border:1px solid rgba(0,229,160,.35);color:var(--accent);border-radius:6px;padding:5px 9px;font-family:var(--f);font-size:11px;cursor:pointer;white-space:nowrap;transition:all .15s}
+#btn-new:hover{background:var(--accent);color:var(--bg)}
+#cl{flex:1;overflow-y:auto;padding:6px 5px;display:flex;flex-direction:column;gap:2px}
+.ci{padding:7px 9px;border-radius:6px;cursor:pointer;color:var(--text2);font-size:12px;display:flex;align-items:center;gap:6px;transition:all .12s;border:1px solid transparent}
+.ci:hover{background:var(--bg3);color:var(--text)}
+.ci.on{background:var(--adim);border-color:rgba(0,229,160,.2);color:var(--accent)}
+.ct{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cd{opacity:0;color:var(--text3);font-size:15px;flex-shrink:0;transition:opacity .12s}
+.ci:hover .cd{opacity:1}
+.cd:hover{color:var(--err)!important}
+#sb-ft{padding:8px;border-top:1px solid var(--border);color:var(--text3);font-size:10px;text-align:center;line-height:1.5}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+
+/* ── TOPBAR ── */
+#tb{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;flex-wrap:wrap}
+#btn-menu{display:none;background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 8px;font-size:16px;cursor:pointer;line-height:1}
+#ms{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 8px;font-family:var(--f);font-size:12px;cursor:pointer;outline:none;flex-shrink:0;max-width:250px}
+#ms:focus{border-color:rgba(0,229,160,.5)}
+#ms optgroup{background:var(--bg3);color:var(--text2)}
+#ms option{background:var(--bg3);color:var(--text)}
+#tb-sp{flex:1}
+/* API key wrap */
+#ak{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;transition:border-color .2s;flex-shrink:0}
+#ak.ok{border-color:rgba(0,229,160,.45)}
+#ak.bad{border-color:rgba(255,85,85,.45)}
+.kl{color:var(--text3);font-size:11px;white-space:nowrap}
+#ki{background:none;border:none;outline:none;color:var(--text);font-family:var(--f);font-size:12px;width:150px;min-width:40px}
+#ki::placeholder{color:var(--text3)}
+#kd{font-size:12px;flex-shrink:0}
+#btn-paste{background:none;border:none;color:var(--text3);padding:0 2px;cursor:pointer;font-size:14px;line-height:1;transition:color .15s;flex-shrink:0}
+#btn-paste:hover{color:var(--accent)}
+#btn-cfg{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 9px;font-size:15px;cursor:pointer;transition:all .15s;line-height:1;flex-shrink:0}
+#btn-cfg:hover,#btn-cfg.on{border-color:var(--accent);color:var(--accent)}
+
+/* ── SETTINGS ── */
+#cfg{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 14px;gap:14px;flex-wrap:wrap;align-items:flex-start}
+#cfg.on{display:flex}
+.sg{display:flex;flex-direction:column;gap:5px;min-width:130px;flex:1}
+.sl{font-size:11px;color:var(--text2);display:flex;justify-content:space-between}
+.sl em{color:var(--accent);font-style:normal;font-weight:500}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+.sg textarea{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:7px 9px;font-family:var(--f);font-size:12px;resize:vertical;min-height:60px;outline:none;line-height:1.5;width:100%}
+.sg textarea:focus{border-color:rgba(0,229,160,.5)}
+.sg textarea::placeholder{color:var(--text3)}
+
+/* ── CHAT ── */
+#chat{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:3px;scroll-behavior:smooth;background:var(--bg);min-height:0}
+#emp{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3);text-align:center;padding:40px}
+.ei{font-size:38px;opacity:.3}
+.et{font-size:15px;color:var(--text2);font-weight:500}
+.es{font-size:11px;line-height:1.7}
+.msg{display:flex;flex-direction:column;gap:2px;max-width:86%;animation:mi .15s ease}
+@keyframes mi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;align-items:flex-end}
+.msg.assistant{align-self:flex-start;align-items:flex-start}
+.mr{font-size:10px;color:var(--text3);padding:0 3px;text-transform:uppercase;letter-spacing:.8px}
+.bub{padding:9px 13px;border-radius:10px;line-height:1.65;word-break:break-word;white-space:pre-wrap;font-size:13px}
+.msg.user .bub{background:var(--ubg);border:1px solid var(--uborder);border-bottom-right-radius:3px}
+.msg.assistant .bub{background:var(--bg2);
