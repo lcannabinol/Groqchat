@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Groq Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0c0c0e; --bg2:#141417; --bg3:#1c1c21;
+  --border:#2a2a32; --border2:#3a3a45;
+  --accent:#00e5a0; --accent2:#00b880; --adim:rgba(0,229,160,.10);
+  --text:#e8e8f0; --text2:#8888a0; --text3:#555566;
+  --ubg:#1a2a22; --uborder:rgba(0,229,160,.18);
+  --err:#ff5555; --f:'JetBrains Mono',monospace; --sw:240px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--f);font-size:13px}
+body{display:flex}
+
+/* ── SIDEBAR ── */
+#sb{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:transform .23s ease;z-index:100;min-height:0}
+#sb-hd{padding:12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.logo{color:var(--accent);font-weight:700;font-size:14px;letter-spacing:-.5px;flex:1}
+.logo span{color:var(--text3);font-weight:300}
+#btn-new{background:var(--adim);border:1px solid rgba(0,229,160,.35);color:var(--accent);border-radius:6px;padding:5px 9px;font-family:var(--f);font-size:11px;cursor:pointer;transition:all .15s}
+#btn-new:hover{background:var(--accent);color:var(--bg)}
+#cl{flex:1;overflow-y:auto;padding:6px 5px;display:flex;flex-direction:column;gap:2px}
+.ci{padding:7px 9px;border-radius:6px;cursor:pointer;color:var(--text2);font-size:12px;display:flex;align-items:center;gap:6px;border:1px solid transparent}
+.ci:hover{background:var(--bg3);color:var(--text)}
+.ci.on{background:var(--adim);border-color:rgba(0,229,160,.2);color:var(--accent)}
+.ct{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cd{opacity:0;color:var(--text3);font-size:14px;transition:opacity .12s}
+.ci:hover .cd{opacity:1}
+.cd:hover{color:var(--err)!important}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;height:100%;overflow:hidden;position:relative}
+
+/* ── TOPBAR ── */
+#tb{display:flex;align-items:center;gap:6px;padding:8px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+#btn-menu{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 8px;font-size:14px;cursor:pointer;display:none}
+#ms{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:5px 6px;font-family:var(--f);font-size:12px;cursor:pointer;outline:none;max-width:160px;text-overflow:ellipsis}
+#btn-limits{background:var(--bg3);border:1px solid var(--border2);color:var(--accent);border-radius:6px;padding:5px 7px;font-size:12px;cursor:pointer}
+#ak{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 6px}
+#ak.ok{border-color:rgba(0,229,160,.4)}
+#ak.bad{border-color:rgba(255,85,85,.4)}
+#ki{background:none;border:none;outline:none;color:var(--text);font-family:var(--f);font-size:12px;width:90px}
+#btn-paste, #btn-cfg{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:5px 7px;font-size:13px;cursor:pointer}
+#btn-cfg.on{border-color:var(--accent);color:var(--accent)}
+
+/* ── SETTINGS ── */
+#cfg{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px;gap:10px;flex-wrap:wrap}
+#cfg.on{display:flex}
+.sg{display:flex;flex-direction:column;gap:4px;min-width:120px;flex:1}
+.sl{font-size:11px;color:var(--text2)}
+.sl em{color:var(--accent);font-style:normal}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--border2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.sg textarea{background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px;font-family:var(--f);font-size:12px;resize:none;outline:none}
+
+/* ── CHAT ── */
+#chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+#emp{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);text-align:center;padding:20px}
+.msg{display:flex;flex-direction:column;gap:1px;max-width:88%}
+.msg.user{align-self:flex-end;align-items:flex-end}
+.msg.assistant{align-self:flex-start;align-items:flex-start}
+.mr{font-size:9px;color:var(--text3);text-transform:uppercase}
+.bub{padding:8px 12px;border-radius:8px;line-height:1.5;word-break:break-word;white-space:pre-wrap;font-size:12px}
+.msg.user .bub{background:var(--ubg);border:1px solid var(--uborder);border-bottom-right-radius:2px}
+.msg.assistant .bub{background:var(--bg2);border:1px solid var(--border);border-bottom-left-radius:2px}
+.bub code{background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:1px 4px;font-size:11px;color:var(--accent)}
+.bub pre{background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:8px;overflow-x:auto;margin:4px 0}
+.bub pre code{background:none;border:none;padding:0;color:var(--text)}
+
+/* ── INPUT PANEL (FIXED BOTTOM) ── */
+#ir{padding:8px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:6px;align-items:flex-end;flex-shrink:0}
+#mi{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:8px 10px;font-family:var(--f);font-size:13px;resize:none;outline:none;line-height:1.4;max-height:120px;min-height:36px}
+.ibtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;height:36px;min-width:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s}
+#bs{background:var(--accent);color:var(--bg);font-weight:700;border:none}
+#bs.stop{background:var(--err);color:var(--text)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:65px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 14px;border-radius:6px;font-size:11px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:999;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+#toast.err{border-color:rgba(255,85,85,.5);color:var(--err)}
+#toast.ok{border-color:rgba(0,229,160,.5);color:var(--accent)}
+
+#ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+
+/* ── MOBILE ADAPTATION ── */
+@media(max-width:640px){
+  #sb{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%)}
+  #sb.on{transform:translateX(0)}
+  #ov.on{display:block}
+  #btn-menu{display:block}
+  .kl{display:none}
+  #ki{width:65px}
+  #ms{max-width:110px}
+}
+</style>
+</head>
+<body>
+
+<div id="ov"></div>
+
+<div id="sb">
+  <div id="sb-hd">
+    <div class="logo">GROQ<span>/free</span></div>
+    <button id="btn-new">+ Чат</button>
+  </div>
+  <div id="cl"></div>
+</div>
+
+<div id="main">
+  <div id="tb">
+    <button id="btn-menu">☰</button>
+    <select id="ms"></select>
+    <button id="btn-limits" title="Показать лимиты модели">📊</button>
+
+    <div style="flex:1"></div>
+
+    <div id="ak">
+      <span class="kl" style="color:var(--text3);font-size:10px">KEY</span>
+      <input id="ki" type="password" placeholder="gsk_…" autocomplete="off">
+    </div>
+    <button id="btn-paste" title="Вставить ключ">📋</button>
+    <button id="btn-cfg" title="Настройки">⚙</button>
+  </div>
+
+  <div id="cfg">
+    <div class="sg" style="flex:2">
+      <div class="sl">Системный промт</div>
+      <textarea id="sp" placeholder="Ты полезный ассистент…" rows="2"></textarea>
+    </div>
+    <div class="sg">
+      <div class="sl">Temp: <em id="tv">0.70</em></div>
+      <input type="range" id="tmp" min="0" max="2" step="0.1" value="0.7">
+    </div>
+    <div class="sg">
+      <div class="sl">Tokens: <em id="tkv">2048</em></div>
+      <input type="range" id="tok" min="256" max="8192" step="256" value="2048">
+    </div>
+  </div>
+
+  <div id="chat">
+    <div id="emp">
+      <div style="font-size:24px;margin-bottom:8px">⚡</div>
+      <div style="font-size:14px;color:var(--text2);font-weight:500">Groq Free Interface</div>
+    </div>
+  </div>
+
+  <div id="ir">
+    <input type="file" id="f-in" style="display:none" multiple>
+    <button class="ibtn" id="btn-file" title="Загрузить файл(ы)">📎</button>
+    <textarea id="mi" placeholder="Сообщение… (Enter — отправить)" rows="1"></textarea>
+    <button class="ibtn" id="bc" title="Очистить">🗑</button>
+    <button class="ibtn" id="bs">▶</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// Список строго бесплатных и актуальных моделей Groq
+var FREE_MODELS = [
+  {id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B'},
+  {id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B'},
+  {id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B'},
+  {id: 'gemma2-9b-it', name: 'Gemma 2 9B'}
+];
+
+var convs = [], curId = null, busy = false, xhr = null;
+var limitsCache = {}; // Хранилище заголовков лимитов по моделям
+
+var $sb=$document.getElementById('sb'), $ov=$document.getElementById('ov'), $cl=$document.getElementById('cl'), $chat=$document.getElementById('chat'), $emp=$document.getElementById('emp'), $mi=$document.getElementById('mi'), $bs=$document.getElementById('bs'), $bc=$document.getElementById('bc'), $ms=$document.getElementById('ms'), $sp=$document.getElementById('sp'), $tmp=$document.getElementById('tmp'), $tok=$document.getElementById('tok'), $tv=$document.getElementById('tv'), $tkv=$document.getElementById('tkv'), $ki=$document.getElementById('ki'), $ak=$document.getElementById('ak'), $toast=$document.getElementById('toast'), $cfg=$document.getElementById('cfg'), $btnCfg=$document.getElementById('btn-cfg'), $btnNew=$document.getElementById('btn-new'), $btnMenu=$document.getElementById('btn-menu'), $btnPaste=$document.getElementById('btn-paste'), $btnFile=$document.getElementById('btn-file'), $fIn=$document.getElementById('f-in'), $btnLimits=$document.getElementById('btn-limits');
+
+// Инициализация селектора моделей
+FREE_MODELS.forEach(function(m){
+  var opt = document.createElement('option');
+  opt.value = m.id; opt.textContent = m.name;
+  $ms.appendChild(opt);
+});
+
+function save() {
+  try {
+    localStorage.setItem('gq_free_convs', JSON.stringify(convs));
+    localStorage.setItem('gq_free_cur', curId || '');
+    localStorage.setItem('gq_free_model', $ms.value);
+    localStorage.setItem('gq_free_sys', $sp.value);
+    localStorage.setItem('gq_free_tmp', $tmp.value);
+    localStorage.setItem('gq_free_tok', $tok.value);
+  } catch(e){}
+}
+
+function load() {
+  try {
+    var raw = localStorage.getItem('gq_free_convs'); if(raw) convs = JSON.parse(raw);
+    var key = localStorage.getItem('gq_free_api_key'); if(key) $ki.value = key;
+    var m = localStorage.getItem('gq_free_model'); if(m) $ms.value = m;
+    var sys = localStorage.getItem('gq_free_sys'); if(sys!==null) $sp.value = sys;
+    var tmp = localStorage.getItem('gq_free_tmp'); if(tmp!==null){ $tmp.value = tmp; $tv.textContent = parseFloat(tmp).toFixed(2); }
+    var tok = localStorage.getItem('gq_free_tok'); if(tok!==null){ $tok.value = tok; $tkv.textContent = tok; }
+    var cur = localStorage.getItem('gq_free_cur');
+    if(cur && convs.find(function(c){return c.id===cur;})) curId = cur;
+    else if(convs.length) curId = convs[0].id;
+  } catch(e){}
+}
+
+function updKey() {
+  var k = $ki.value.trim();
+  $ak.className = (k.startsWith('gsk_') && k.length > 20) ? 'ok' : (k ? 'bad' : '');
+}
+$ki.addEventListener('input', function(){ updKey(); try{localStorage.setItem('gq_free_api_key', $ki.value.trim());}catch(e){} });
+
+$btnPaste.addEventListener('click', function(){
+  navigator.clipboard.readText().then(function(t){
+    if(t){ $ki.value = t.trim(); updKey(); $ki.dispatchEvent(new Event('input')); toast('Ключ вставлен ✓', 'ok'); }
+  }).catch(function(){
+    var p = prompt('Вставьте API ключ сюда:');
+    if(p){ $ki.value = p.trim(); updKey(); $ki.dispatchEvent(new Event('input')); }
+  });
+});
+
+$btnCfg.addEventListener('click', function(){ $cfg.classList.toggle('on'); $btnCfg.classList.toggle('on'); });
+$tmp.addEventListener('input', function(){ $tv.textContent = parseFloat($tmp.value).toFixed(2); save(); });
+$tok.addEventListener('input', function(){ $tkv.textContent = $tok.value; save(); });
+$ms.addEventListener('change', save);
+$sp.addEventListener('input', save);
+$btnMenu.addEventListener('click', function(){ $sb.classList.toggle('on'); $ov.classList.toggle('on'); });
+$ov.addEventListener('click', function(){ $sb.classList.remove('on'); $ov.classList.remove('on'); });
+
+// ОБРАБОТКА ФАЙЛОВ
+$btnFile.addEventListener('click', function(){ $fIn.click(); });
+$fIn.addEventListener('change', function(e){
+  var files = e.target.files; if(!files.length) return;
+  var loaded = 0;
+  for(var i=0; i<files.length; i++) {
+    (function(f){
+      var r = new FileReader();
+      r.onload = function(evt) {
+        var txt = evt.target.result;
+        $mi.value += ($mi.value ? '\n' : '') + '[File: ' + f.name + ']\n' + txt + '\n[End of ' + f.name + ']\n';
+        $mi.dispatchEvent(new Event('input'));
+        loaded++;
+        if(loaded === files.length) toast('Файлы загружены в текстовое поле ('+loaded+')', 'ok');
+      };
+      r.readAsText(f);
+    })(files[i]);
+  }
+  $fIn.value = '';
+});
+
+// ПРОСМОТР ЛИМИТОВ (ONE TAP)
+$btnLimits.addEventListener('click', function(){
+  var m = $ms.value;
+  var l = limitsCache[m];
+  if(!l) {
+    toast('Нет данных. Сделайте хотя бы один запрос для этой модели.', 'err');
+    return;
+  }
+  var msg = 'Модель: ' + m + '\n' +
+            'Запросы (остаток): ' + (l.reqRem || '?') + ' / ' + (l.reqLimit || '?') + ' (сброс через ' + (l.reqReset || '?') + ')\n' +
+            'Токены (остаток): ' + (l.tokRem || '?') + ' / ' + (l.tokLimit || '?') + ' (сброс через ' + (l.tokReset || '?') + ')';
+  alert(msg);
+});
+
+function parseLimits(h, modelId) {
+  var get = function(p){ return h.getResponseHeader(p); };
+  if(get('x-ratelimit-remaining-requests')) {
+    limitsCache[modelId] = {
+      reqLimit: get('x-ratelimit-limit-requests'),
+      reqRem: get('x-ratelimit-remaining-requests'),
+      reqReset: get('x-ratelimit-reset-requests'),
+      tokLimit: get('x-ratelimit-limit-tokens'),
+      tokRem: get('x-ratelimit-remaining-tokens'),
+      tokReset: get('x-ratelimit-reset-tokens')
+    };
+  }
+}
+
+// УПРАВЛЕНИЕ ЧАТАМИ
+function newConv() {
+  var id = 'c' + Date.now();
+  convs.unshift({ id:id, title:'Новый чат', msgs:[] }); curId = id;
+  renderCL(); renderChat(); save();
+}
+function delConv(id) {
+  convs = convs.filter(function(c){ return c.id !== id; });
+  if(curId === id) curId = convs.length ? convs[0].id : null;
+  if(!curId) newConv(); else { renderCL(); renderChat(); save(); }
+}
+function swConv(id) { curId = id; renderCL(); renderChat(); $sb.classList.remove('on'); $ov.classList.remove('on'); save(); }
+function cur() { return convs.find(function(c){ return c.id === curId; }); }
+
+function renderCL() {
+  $cl.innerHTML = '';
+  convs.forEach(function(c){
+    var el = document.createElement('div');
+    el.className = 'ci' + (c.id === curId ? ' on' : '');
+    el.innerHTML = '<span class="ct">' + esc(c.title) + '</span><span class="cd" data-id="'+c.id+'">✕</span>';
+    el.addEventListener('click', function(e){
+      if(e.target.classList.contains('cd')){ e.stopPropagation(); delConv(e.target.getAttribute('data-id')); }
+      else swConv(c.id);
+    });
+    $cl.appendChild(el);
+  });
+}
+
+$btnNew.addEventListener('click', newConv);
+$bc.addEventListener('click', function(){
+  var c = cur(); if(!c) return;
+  c.msgs = []; c.title = 'Новый чат'; renderCL(); renderChat(); save();
+});
+
+function renderChat() {
+  var c = cur();
+  if(!c || !c.msgs.length){ $chat.innerHTML = ''; $chat.appendChild($emp); return; }
+  $chat.innerHTML = '';
+  c.msgs.forEach(function(m){ addBubble(m.role, m.content); });
+  scrollBot();
+}
+
+function addBubble(role, txt, isLoading) {
+  var w = document.createElement('div'); w.className = 'msg ' + role;
+  var l = document.createElement('div'); l.className = 'mr'; l.textContent = role==='user'?'вы':'groq';
+  var b = document.createElement('div'); b.className = 'bub';
+  if(isLoading) b.innerHTML = '<span style="color:var(--text3)">● ● ●</span>';
+  else b.innerHTML = fmt(txt);
+  w.appendChild(l); w.appendChild(b); $chat.appendChild(w); scrollBot(); return b;
+}
+
+function fmt(t) {
+  t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, function(_,l,c){ return '<pre><code>'+esc(c.trim())+'</code></pre>'; });
+  t = t.replace(/`([^`\n]+)`/g, function(_,c){ return '<code>'+esc(c)+'</code>'; });
+  var p = t.split(/(<pre>[\s\S]*?<\/pre>|<code>[^<]*<\/code>)/);
+  return p.map(function(s,i){ return i%2===0 ? esc(s) : s; }).join('');
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function scrollBot() { requestAnimationFrame(function(){ $chat.scrollTop = $chat.scrollHeight; }); }
+
+var toastT;
+function toast(m, type) {
+  clearTimeout(toastT); $toast.textContent = m; $toast.className = 'on' + (type ? ' ' + type : '');
+  toastT = setTimeout(function(){ $toast.className = ''; }, 3500);
+}
+
+// ОТПРАВКА
+$mi.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); } });
+$bs.addEventListener('click', function(){ if(busy) stopReq(); else sendMsg(); });
+
+$mi.addEventListener('input', function(){
+  $mi.style.height = 'auto';
+  $mi.style.height = Math.min($mi.scrollHeight, 120) + 'px';
+});
+
+function stopReq() { if(xhr){ xhr.abort(); xhr=null; } done(); }
+
+function sendMsg() {
+  var key = $ki.value.trim(); if(!key){ toast('Вставьте API ключ', 'err'); return; }
+  var text = $mi.value.trim(); if(!text || busy) return;
+
+  var c = cur(); if(!c){ newConv(); c = cur(); }
+  c.msgs.push({ role:'user', content:text });
+  if(c.title === 'Новый чат') c.title = text.slice(0, 30) + (text.length>30?'…':'');
+  
+  $mi.value = ''; $mi.style.height = 'auto';
+  renderCL(); renderChat();
+
+  busy = true; $bs.textContent = '■'; $bs.classList.add('stop');
+  var ab = addBubble('assistant', '', true);
+  var activeModel = $ms.value;
+
+  var messages = [];
+  var sys = $sp.value.trim(); if(sys) messages.push({ role:'system', content:sys });
+  c.msgs.forEach(function(m){ messages.push({ role:m.role, content:m.content }); });
+
+  xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.groq.com/openai/v1/chat/completions', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Bearer ' + key);
+  
+  xhr.onload = function() {
+    parseLimits(xhr, activeModel);
+    var res; try{ res = JSON.parse(xhr.responseText); }catch(e){ res={}; }
+    if(xhr.status >= 200 && xhr.status < 300) {
+      var reply = (res.choices && res.choices[0] && res.choices[0].message && res.choices[0].message.content) || '';
+      ab.innerHTML = fmt(reply);
+      if(reply.trim()) c.msgs.push({ role:'assistant', content:reply });
+    } else {
+      var err = (res.error && res.error.message) || ('HTTP ' + xhr.status);
+      ab.innerHTML = '<span style="color:var(--err)">❌ ' + esc(err) + '</span>';
+    }
+    save(); scrollBot(); done();
+  };
+  
+  xhr.onerror = function() {
+    ab.innerHTML = '<span style="color:var(--err)">❌ Ошибка сети/CORS. Запусти через локальный сервер (python -m http.server).</span>';
+    done();
+  };
+  
+  xhr.send(JSON.stringify({
+    model: activeModel, messages: messages,
+    temperature: parseFloat($tmp.value), max_tokens: parseInt($tok.value), stream: false
+  }));
+}
+
+function done() { busy = false; xhr = null; $bs.textContent = '▶'; $bs.classList.remove('stop'); }
+
+// INIT
+load(); updKey();
+if(!convs.length) newConv(); else { renderCL(); renderChat(); }
+</script>
+</body>
+</html>
